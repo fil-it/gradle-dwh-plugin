@@ -1,0 +1,8 @@
+
+pluginManagement {
+     plugins {
+          id 'org.sonarqube' version "${sonarqube_plugin_version}"
+     }
+}
+
+rootProject.name = "gradle-dwh-plugin"

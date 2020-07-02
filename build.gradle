@@ -1,0 +1,108 @@
+plugins {
+    id 'checkstyle'
+    id 'java-gradle-plugin'
+    id 'jacoco'
+    id "maven-publish"
+    id "org.sonarqube"
+}
+apply from: "gradle/sonar.gradle"
+group = 'ru.filit.bi'
+version = '0.4.0'
+repositories {
+    maven {
+        url = 'https://toolset.phoenixit.ru/artifactory/gismubi-release'
+        credentials {
+            username PHOENIX_USER
+            password PHOENIX_PASSWORD
+        }
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+dependencies {
+    compileOnly 'org.projectlombok:lombok:1.18.12'
+    annotationProcessor 'org.projectlombok:lombok:1.18.12'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.11.0'
+    implementation 'org.liquibase:liquibase-gradle-plugin:2.0.3'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:5.7.0.202003110725-r'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.4.2'
+    testImplementation 'org.projectlombok:lombok:1.18.12'
+}
+
+gradlePlugin {
+    plugins {
+        simplePlugin {
+            id = 'liquibase.dwh.changelog'
+            implementationClass = 'liquibase.dwh.changelog.ChangelogPlugin'
+        }
+    }
+}
+test {
+    useJUnitPlatform()
+    exclude "**/*IT*", "**/*IntTest*"
+
+    testLogging {
+        events 'FAILED', 'SKIPPED'
+    }
+    reports.html.enabled = false
+}
+//task integrationTest(type: Test) {
+//    useJUnitPlatform()
+//    description = "Execute integration tests."
+//    group = "verification"
+//    include "**/*IT*", "**/*IntTest*"
+//    testLogging {
+//        events 'FAILED', 'SKIPPED'
+//    }
+//    reports.html.enabled = false
+//}
+//check.dependsOn integrationTest
+
+jacocoTestReport {
+    executionData tasks.withType(Test)
+    classDirectories.from = files(sourceSets.main.output.classesDirs)
+    sourceDirectories.from = files(sourceSets.main.java.srcDirs)
+
+    reports {
+        xml.enabled = true
+    }
+}
+
+task testReport(type: TestReport) {
+    destinationDir = file("$buildDir/reports/tests")
+    reportOn test
+}
+
+//task integrationTestReport(type: TestReport) {
+//    destinationDir = file("$buildDir/reports/tests")
+//    reportOn integrationTest
+//}
+
+checkstyle {
+    toolVersion "${checkstyle_version}"
+    checkstyleTest.enabled = false
+}
+
+publishing {
+    repositories {
+        maven {
+            name 'gismuRelease'
+            url = 'https://toolset.phoenixit.ru/artifactory/gismubi-release-local'
+            credentials {
+                username PHOENIX_USER
+                password PHOENIX_PASSWORD
+            }
+        }
+    }
+    publications {
+        plugin(MavenPublication) {
+            from components.java
+        }
+    }
+}

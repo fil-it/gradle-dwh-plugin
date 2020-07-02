@@ -1,0 +1,7 @@
+version: '2'
+services:
+  gradle-dwh-plugin-sonar:
+    image: sonarqube:8.3.1-community
+    ports:
+      - 9000:9000
+      - 9092:9092
