@@ -18,7 +18,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * todo
+ * SQL выражения собранные для записи в один файл
  */
 @Data
 @Accessors(fluent = true)
@@ -27,28 +27,37 @@ import java.util.List;
 @Builder
 public class ImportSqlFile {
     /**
-     * todo
+     * путь до целевого каталога
      */
     private String filePath;
 
     /**
-     * todo
+     * имя файла
      */
     private String fileName;
 
     /**
-     * todo
+     * автор изменений
+     */
+    private String author;
+
+    /**
+     * имя текущего таска в jira
+     */
+    private String taskName;
+
+    /**
+     * Список логических блоков sql выражений
      */
     @Singular
     private List<ImportSqlBlock> blocks;
 
     /**
-     * todo
+     * записывает данные в файл
      *
-     * @param scheme todo
-     * @throws GradleException todo
+     * @param scheme целевой файл
      */
-    public void writeFile(File scheme) throws GradleException {
+    public void writeFile(File scheme) {
         if (filePath == null || fileName == null) {
             throw new GradleException("Cannot write block: \n" + this);
         }
@@ -56,11 +65,13 @@ public class ImportSqlFile {
         destinationFolder.toFile().mkdirs();
         final Path yamlFile = destinationFolder.resolve(fileName);
         if (yamlFile.toFile().exists()) {
-            throw new GradleException("File '" + yamlFile.toFile().getName() + "' suddenly exists. Skipping.");
+            throw new GradleException("File '" + yamlFile.toFile().getAbsolutePath() + "' suddenly exists. Skipping.");
         }
         try (PrintWriter fileWriter = new PrintWriter(new OutputStreamWriter(
                 new FileOutputStream(yamlFile.toFile()), StandardCharsets.UTF_8
         ))) {
+            fileWriter.println("--liquibase formatted sql");
+            fileWriter.println(String.format("--changeset %s:%s runInTransaction:true", author, fileName));
             blocks.forEach(block -> block.write(fileWriter));
         } catch (IOException e) {
             throw new GradleException("Cannot write file " + yamlFile, e);
