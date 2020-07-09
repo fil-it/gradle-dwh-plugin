@@ -19,31 +19,34 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * todo
+ * Gradle task отвечающий за импорт большого sql файла экспортированного из другой системы.
+ * Разбивает входной файл на по таблицам, все остальные выражения группирует в файл в корне схемы.
+ * Требует два входных параметра путь до импортируемого sql файла (--file="C:/Users/user/IdeaProjects/gismubi/dwh/CreateNSI.sql")
+ * и путь до каталога схемы (--scheme="src/main/gp/databases/dwh/schemas/labour_migration")
  */
 public class ImportSqlTask extends DefaultTask {
     /**
-     * todo
+     * конфигурация плагина DWH.changelog
      */
     private ChangelogPluginExtension config;
 
     /**
-     * todo
+     * путь до импортируемого sql файла
      */
     private String fileString;
 
     /**
-     * todo
+     * путь до каталога схемы
      */
     private String scheme;
 
     /**
-     * todo
+     * имя текущей задачи в Jira
      */
     private String taskName;
 
     /**
-     * todo
+     * имя автора изменений (из git)
      */
     private String author;
 
@@ -52,9 +55,9 @@ public class ImportSqlTask extends DefaultTask {
     }
 
     /**
-     * todo
+     * устанавливает входной параметр из строки вызова
      *
-     * @param scheme todo
+     * @param scheme путь до каталога схемы
      */
     @Option(option = "scheme", description = "Configures the scheme path importing to.")
     public void setScheme(String scheme) {
@@ -62,9 +65,9 @@ public class ImportSqlTask extends DefaultTask {
     }
 
     /**
-     * todo
+     * устанавливает входной параметр из строки вызова
      *
-     * @param file todo
+     * @param file путь до импортируемого sql файла
      */
     @Option(option = "file", description = "Configures the file to be imported.")
     public void setFile(String file) {
@@ -101,14 +104,13 @@ public class ImportSqlTask extends DefaultTask {
                 getLogger().quiet(e.getMessage());
             }
         }
-        System.out.println("blocks = " + blocks);
     }
 
     /**
-     * todo
+     * Объединяет логические блоки относящиеся к одной таблице в объект для записи в конечный файл.
      *
-     * @param blocks todo
-     * @return todo
+     * @param blocks Список логических блоков
+     * @return Список объектов готовых для записи в файлы
      */
     private List<ImportSqlFile> sliceBlocks(List<ImportSqlBlock> blocks) {
         final ArrayList<ImportSqlFile> result = new ArrayList<>();
@@ -121,6 +123,8 @@ public class ImportSqlTask extends DefaultTask {
                 }
                 currentFile = ImportSqlFile.builder();
                 currentFile.fileName("1-0-0-CD-" + taskName + "-init.sql");
+                currentFile.author(author);
+                currentFile.taskName(taskName);
                 if (block.headerContains("Created on")) {
                     currentFile.filePath("");
                 } else {
@@ -138,10 +142,10 @@ public class ImportSqlTask extends DefaultTask {
     }
 
     /**
-     * todo
      *
-     * @param file todo
-     * @return todo
+     *
+     * @param file Импортируемый файл
+     * @return Список строк импортируемого файла
      */
     private List<String> readFile(File file) {
         try (LineNumberReader lineReader = new LineNumberReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
@@ -152,10 +156,11 @@ public class ImportSqlTask extends DefaultTask {
     }
 
     /**
-     * todo
+     * Разделяет список строк импортируемого файла на логические блоки.
+     * Блоки разделены комментариями в импортируемом файле.
      *
-     * @param allFile todo
-     * @return todo
+     * @param allFile Лист строк импортируемого файла.
+     * @return Лист логических блоков.
      */
     private List<ImportSqlBlock> sliceFile(List<String> allFile) {
         final ArrayList<ImportSqlBlock> blocks = new ArrayList<>();
