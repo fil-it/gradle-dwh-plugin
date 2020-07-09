@@ -1,0 +1,19 @@
+stages:
+  - quality_gate
+
+.gradle:
+  image: bellsoft/liberica-openjdk-centos:8u252
+  variables:
+    GRADLE_OPTS: -Dorg.gradle.daemon=false
+    GRADLE_USER_HOME: /cache_pvc/.gradle/
+  before_script:
+    - cp gradle.properties.template gradle.properties
+    - printenv >> gradle.properties
+
+
+stub:
+  stage: quality_gate
+  image: $CI_REGISTRY/gismubi/infrastructure/git-style-junit:latest
+  script:
+    - pwd
+
