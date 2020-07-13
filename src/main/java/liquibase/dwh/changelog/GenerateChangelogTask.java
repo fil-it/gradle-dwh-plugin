@@ -112,7 +112,7 @@ public class GenerateChangelogTask extends DefaultTask {
         var include = ChangelogElementInclude.builder()
                                              .include(ChangelogInclude.builder()
                                                                       .relativeToChangelogFile(true)
-                                                                      .file(normalizedPath.toString())
+                                                                      .file(pathToString(normalizedPath))
                                                                       .build())
                                              .build();
         try {
@@ -216,7 +216,11 @@ public class GenerateChangelogTask extends DefaultTask {
     }
 
     private Stream<Path> listFilesUnchecked(Path it) {
-        return getProject().files(it).getFiles().stream().map(this::getProjectPath);
+        try {
+            return Files.list(getProject().file(it).toPath()).map(this::getProjectPath);
+        } catch (IOException e) {
+            throw new GradleException("Can't list files in source set directory", e);
+        }
     }
 
     private Stream<Path> walkFilesUnchecked(Path it) {
@@ -225,13 +229,22 @@ public class GenerateChangelogTask extends DefaultTask {
 
     // All incoming paths are project relative, however gradle daemon working dir is not equal to projectDir
     private Path getProjectPath(File f) {
-        return getProject().getProjectDir().toPath().relativize(f.toPath()).normalize();
+        return getProjectPath(f.toPath());
+    }
+
+    // All incoming paths are project relative, however gradle daemon working dir is not equal to projectDir
+    private Path getProjectPath(Path f) {
+        return getProject().getProjectDir().toPath().relativize(f).normalize();
+    }
+
+    private String pathToString(Path path) {
+        return path.toString().replace('\\', '/');
     }
 
     private Path generateTaskChangelog(Path tasksDir, Collection<Path> files) {
         var taskChangelogPath = generateFilePath(tasksDir);
         var pathElement = ChangelogElementLogicalPath.builder()
-                                                     .logicalFilePath(taskChangelogPath.toString())
+                                                     .logicalFilePath(pathToString(taskChangelogPath))
                                                      .build();
         var targetBuilder = ChangelogFile.builder();
         targetBuilder.element(pathElement);
@@ -261,7 +274,7 @@ public class GenerateChangelogTask extends DefaultTask {
         if (file.toString().contains("CD") || file.toString().contains("CM")) {
             return ChangelogElementInclude.builder()
                                           .include(ChangelogInclude.builder()
-                                                                   .file(file.toString())
+                                                                   .file(pathToString(file))
                                                                    .build())
                                           .build();
         }
@@ -278,14 +291,14 @@ public class GenerateChangelogTask extends DefaultTask {
                .id(file.getFileName().toString().replace("DD", "CD").replace("DM", "CM").replace(".sql", ""))
                .change(ChangeSqlFile.builder()
                                     .sqlFile(ChangeFile.builder()
-                                                       .path(file.toString())
+                                                       .path(pathToString(file))
                                                        .encoding("UTF-8")
                                                        .build())
                                     .build());
         if (rollback != null) {
             builder.rollback(ChangeSqlFile.builder()
                                           .sqlFile(ChangeFile.builder()
-                                                             .path(rollback.toString())
+                                                             .path(pathToString(rollback))
                                                              .encoding("UTF-8")
                                                              .build())
                                           .build());
