@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 
+//TODO это функциональный тест
 class ChangelogPluginExtensionTest {
 
     public GradleRunner setup(String testConfig) throws IOException {

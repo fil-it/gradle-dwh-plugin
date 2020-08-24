@@ -1,5 +1,21 @@
 
 pluginManagement {
+     repositories {
+          maven {
+               url = REPO_RESOLVE_RELEASE
+               credentials {
+                    username PHOENIX_USER
+                    password PHOENIX_PASSWORD
+               }
+          }
+          maven {
+               url = REPO_RESOLVE_SNAPSHOT
+               credentials {
+                    username PHOENIX_USER
+                    password PHOENIX_PASSWORD
+               }
+          }
+     }
      plugins {
           id 'org.sonarqube' version "${sonarqube_plugin_version}"
      }
