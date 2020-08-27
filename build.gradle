@@ -7,10 +7,13 @@ plugins {
 }
 apply from: "gradle/sonar.gradle"
 group = 'ru.filit.bi'
-version = '0.4.2'
+
+def baseVersion = '0.4.3'
+version = project.hasProperty('ver') ? project['ver'] : "$baseVersion-SNAPSHOT"
+
 repositories {
     maven {
-        url = 'https://toolset.phoenixit.ru/artifactory/gismubi-release'
+        url = REPO_RESOLVE_RELEASE
         credentials {
             username PHOENIX_USER
             password PHOENIX_PASSWORD
@@ -49,6 +52,10 @@ gradlePlugin {
 }
 test {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport // report is always generated after tests run
+    jacoco {
+        enabled true
+    }
     exclude "**/*IT*", "**/*IntTest*"
 
     testLogging {
@@ -97,16 +104,47 @@ publishing {
     repositories {
         maven {
             name 'gismuRelease'
-            url = 'https://toolset.phoenixit.ru/artifactory/gismubi-release-local'
+            url = REPO_PUBLISH_RELEASE
+            credentials {
+                username PHOENIX_USER
+                password PHOENIX_PASSWORD
+            }
+        }
+        maven {
+            name 'gismuSnapshot'
+            url = REPO_PUBLISH_SNAPSHOT
             credentials {
                 username PHOENIX_USER
                 password PHOENIX_PASSWORD
             }
         }
     }
-    publications {
-        plugin(MavenPublication) {
-            from components.java
+}
+
+task snapshot {
+    dependsOn 'publishPluginMavenPublicationToGismuSnapshotRepository', 'publishSimplePluginPluginMarkerMavenPublicationToGismuSnapshotRepository'
+}
+
+task checkRelease {
+    doLast {
+        if (!project.hasProperty('ver')) {
+            throw new GradleException("Version must be explicitly provided with parameter -Pver. It's tag usually")
+        }
+        if (baseVersion != project.version) {
+            throw new GradleException("Version in build.gradle (baseVersion=$baseVersion) not consistent with provided version=$project.version. Synchronize them before release, please.")
+        }
+        def changelogSectionForCurrentVersion = file('CHANGELOG.md').find { line ->
+            if (line.startsWith("## [$baseVersion] - ")) {
+                return true
+            }
+        }
+        if (!changelogSectionForCurrentVersion) {
+            throw new GradleException("Changelog must contain information about released version ('## [$baseVersion] - ...'). Fill CHANGELOG.md and try release again")
         }
     }
+    finalizedBy 'release'
+}
+
+task release {
+    dependsOn checkRelease, 'publishPluginMavenPublicationToGismuReleaseRepository', 'publishSimplePluginPluginMarkerMavenPublicationToGismuReleaseRepository'
 }

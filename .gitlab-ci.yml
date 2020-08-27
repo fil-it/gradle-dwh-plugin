@@ -1,19 +1,140 @@
+# Основной пайплайн ориентирован на сборку в MR, публикация по тэгам или вручную
 stages:
-  - quality_gate
+  - git
+  - build
+  - qa
+  - gate
+  - publish
 
+# Базовый образ для большинства задач
+default:
+  image: bellsoft/liberica-openjdk-centos:8
+
+
+# Базовые настройки для всех gradle-жобов
 .gradle:
-  image: bellsoft/liberica-openjdk-centos:8u252
   variables:
     GRADLE_OPTS: -Dorg.gradle.daemon=false
-    GRADLE_USER_HOME: /cache_pvc/.gradle/
+#    PV примонтирован по пути /cache_pvc - это из настроек kubernetes runner
+    GRADLE_USER_HOME: $MOUNT_BASE/gradle-dwh-plugin/.gradle/
   before_script:
-    - cp gradle.properties.template gradle.properties
-    - printenv >> gradle.properties
+    - cp gradle.template.properties gradle.properties # Создаем на основе шаблона свойства проекта
+    - printenv >> gradle.properties # И записываем все переменные окрцжения в него, без разбора. Все что записано в конец имеет приоритет перед началом файла
 
 
-stub:
-  stage: quality_gate
+# Типовая проверка корректности оформления MR
+git:style:
+  stage: git
   image: $CI_REGISTRY/gismubi/infrastructure/git-style-junit:latest
+  after_script:
+    - cp /usr/app/build/test-results/test/TEST-*.xml .
   script:
-    - pwd
+    - cd /usr/app
+    - ./gradlew --no-daemon test
+  artifacts:
+    reports:
+      junit: TEST-*.xml
+    expire_in: 1 day
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
 
+# Компилируем основные исходники и тесты
+build:testCompile:
+  stage: build
+  extends: .gradle
+  script:
+    - ./gradlew testClasses
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+#  Все файлы после сборки и не под VCS считаем артифактами и передаем в следующий стейж через механизм зависимостей
+  artifacts:
+    expire_in: 1 day
+    untracked: true
+    paths:
+      - build/
+      - .gradle/ # нужно для UP-TO-DATE в задачах
+
+# Запускаем тесты проекта, результаты добавляем в MR в виде отчетов, а также сохраняем их в артифактах для передачи на этап gate
+qa:test:
+  stage: qa
+  extends: .gradle
+#  Подгружаем собранный проект с прошлого этапа чтобы сэкономить время сборки
+  dependencies:
+    - build:testCompile
+  script:
+    - ./gradlew test
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  artifacts:
+    untracked: true
+    paths:
+      - build/reports/jacoco/
+      - build/test-results
+      - .gradle/
+    reports:
+      junit: build/test-results/**/TEST-*.xml
+    expire_in: 1 day
+
+# Проверка кода на соответствия стилю
+qa:checkstyle:
+  stage: qa
+  extends: .gradle
+# Подгружаем собранный проект с прошлого этапа чтобы сэкономить время сборки
+  dependencies:
+    - build:testCompile
+  script:
+    - ./gradlew checkstyleMain
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  artifacts:
+    untracked: true
+    paths:
+      - build/reports/checkstyle/main.html
+      - build/reports/checkstyle/main.xml
+    expire_in: 1 day
+    expose_as: checkstyle-report # Даем возможность скачивать отчет чекстайла непосредственно в MR
+
+# Quality Gate
+gate:sonar:
+  stage: gate
+  extends: .gradle
+  # Помимо гейта мы проверяем отсутствие использования непортируемых зависимостей или приватного API
+  image: bellsoft/liberica-openjdk-centos:11
+  dependencies:
+    - build:testCompile
+    - qa:test
+    - qa:checkstyle
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+  variables:
+    GIT_DEPTH: 0
+  script:
+    - cat config/sonar-project.template.properties > config/sonar-project.properties
+    #    Пропускаем потому что на прошлом стейже тесты должны были пробежать
+    - ./gradlew sonar -Dsonar.qualitygate.wait=true -x test -i | tee build.log
+#  Финализация процесса независимо от результатов скриптов
+  after_script:
+    - export COMMENT_MSG=$(grep "QUALITY GATE STATUS" build.log)
+    - export TARGET_URL="$CI_API_V4_URL/projects/$CI_MERGE_REQUEST_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes"
+    - curl -X POST --header "PRIVATE-TOKEN:$GITLAB_API_TOKEN" --data-urlencode "body=$COMMENT_MSG" $TARGET_URL
+
+# Публикация в gismubi-snapshot-local в ручном режиме
+publish:snapshot:
+  stage: publish
+  extends: .gradle
+  dependencies: []
+  script:
+    - ./gradlew snapshot
+  rules:
+    - when: manual
+
+# Публикация в gimubi-release-local при пометке тэгом, содержит дополнительные проверки консистентности.
+publish:release:
+  stage: publish
+  extends: .gradle
+  dependencies: []
+  script:
+    - ./gradlew release -P$CI_COMMIT_TAG
+  rules:
+    - if: $CI_COMMIT_TAG && $CI_COMMIT_BRANCH =~ /^release/
+    - if: $CI_COMMIT_TAG && $CI_COMMIT_BRANCH == "master"
