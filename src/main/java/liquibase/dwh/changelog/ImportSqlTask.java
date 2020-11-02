@@ -96,7 +96,7 @@ public class ImportSqlTask extends DefaultTask {
             throw new GradleException("Invalid schema folder path, parent `schemas` not found");
         }
         schemeFile.mkdirs();
-        List<ImportSqlFile> files = sliceBlocks(blocks);
+        List<ImportSqlFile> files = sliceBlocks(blocks, taskName, author);
         for (ImportSqlFile importSqlFile : files) {
             try {
                 importSqlFile.writeFile(schemeFile);
@@ -107,17 +107,19 @@ public class ImportSqlTask extends DefaultTask {
     }
 
     /**
-     * Объединяет логические блоки относящиеся к одной таблице в объект для записи в конечный файл.
+     * Объединяет логические блоки относящиеся к одной сущности для записи в конечный файл.
      *
      * @param blocks Список логических блоков
+     * @param taskName Имя задачи частью кторой является данный импорт
+     * @param author Логин автора импорта
      * @return Список объектов готовых для записи в файлы
      */
-    private List<ImportSqlFile> sliceBlocks(List<ImportSqlBlock> blocks) {
+    static List<ImportSqlFile> sliceBlocks(List<ImportSqlBlock> blocks, String taskName, String author) {
         final ArrayList<ImportSqlFile> result = new ArrayList<>();
         ImportSqlFile.ImportSqlFileBuilder currentFile = null;
 
         for (ImportSqlBlock block : blocks) {
-            if (block.headerContains("Created on") || block.headerContains("Table")) {
+            if (isLeadingBlock(block)) {
                 if (currentFile != null) {
                     result.add(currentFile.build());
                 }
@@ -125,20 +127,45 @@ public class ImportSqlTask extends DefaultTask {
                 currentFile.fileName("1-0-0-CD-" + taskName + "-init.sql");
                 currentFile.author(author);
                 currentFile.taskName(taskName);
-                if (block.headerContains("Created on")) {
-                    currentFile.filePath("");
-                } else {
-                    currentFile.filePath("tables/" + block.headerGetValue("Table"));
-                }
-                currentFile.block(block);
+                currentFile.filePath(blockPath(block));
             } else {
                 if (currentFile == null) {
                     throw new GradleException("First sql block is invalid!");
                 }
-                currentFile.block(block);
             }
+            currentFile.block(block);
+        }
+
+        if (currentFile != null) {
+            result.add(currentFile.build());
         }
         return result;
+    }
+
+    /**
+     * Проверяет что блок является ведущим.
+     * @param block проверяемый блок
+     * @return результат проверки
+     */
+    static boolean isLeadingBlock(ImportSqlBlock block) {
+        return blockPath(block) != null;
+    }
+
+    /**
+     * Возвращает целевой относительный путь для данного типа блока.
+     * @param block проверяемый блок
+     * @return целевой относительный путь
+     */
+    static String blockPath(ImportSqlBlock block) {
+        if (block.headerContains("Created on")) {
+            return "";
+        } else if (block.headerContains("Table")) {
+            return "tables/" + block.headerGetValue("Table");
+        } else if (block.headerContains("View")) {
+            return "views/" + block.headerGetValue("View");
+        } else {
+            return null;
+        }
     }
 
     /**
