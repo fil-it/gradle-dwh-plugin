@@ -9,7 +9,8 @@ stages:
 # Базовый образ для большинства задач
 default:
   image: bellsoft/liberica-openjdk-centos:8
-
+  tags:
+  - cache-only
 
 # Базовые настройки для всех gradle-жобов
 .gradle:
@@ -124,7 +125,7 @@ publish:snapshot:
   extends: .gradle
   dependencies: []
   script:
-    - ./gradlew snapshot
+    - ./gradlew gismubiSnapshot
   rules:
     - when: manual
 
