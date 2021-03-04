@@ -4,11 +4,12 @@ plugins {
     id 'jacoco'
     id "maven-publish"
     id "org.sonarqube"
+    id 'org.liquibase.gradle' version '2.0.3'
 }
 apply from: "gradle/sonar.gradle"
 group = 'ru.filit.bi'
 
-def baseVersion = '0.5.0'
+def baseVersion = '0.6.0'
 version = project.hasProperty('ver') ? project['ver'] : "$baseVersion-SNAPSHOT"
 
 repositories {
@@ -35,7 +36,9 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.12'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.11.0'
     implementation 'org.liquibase:liquibase-gradle-plugin:2.0.3'
+    implementation 'ru.filit.bi:liquibase-clickhouse:0.1.0'
     implementation 'org.eclipse.jgit:org.eclipse.jgit:5.7.0.202003110725-r'
+    implementation 'org.liquibase:liquibase-core:3.8.9'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.4.2'
@@ -121,7 +124,7 @@ publishing {
     }
 }
 
-task snapshot {
+task gismubiSnapshot {
     dependsOn 'publishPluginMavenPublicationToGismuSnapshotRepository', 'publishSimplePluginPluginMarkerMavenPublicationToGismuSnapshotRepository'
 }
 

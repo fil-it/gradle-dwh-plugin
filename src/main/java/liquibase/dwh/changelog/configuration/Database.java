@@ -60,4 +60,12 @@ public class Database {
             throw new IllegalStateException("Unexpected value: " + type);
         }
     }
+
+    /**
+     * Сеттер для определения имени clickhouse кластера
+     * @param clusterName именя кластера
+     */
+    public void cluster(String clusterName) {
+        System.setProperty("clickhouseCluster", clusterName);
+    }
 }
