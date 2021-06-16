@@ -1,9 +1,42 @@
 # Важные изменения
+
 Все изменения по каждому релизу содержаться в данном файле
 
-Формат по спецификации [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-и версионирование по спецификации [Semantic Versioning](https://semver.org/spec/v2.0.0.html) 
+Формат по спецификации [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), и версионирование по
+спецификации [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 с расширением, так как в версии содержится версия upstream и наша версия.
+
+## [0.8.0] - 2021-06-29
+### Добавлено
+- Добавлен раздел dwh с секцией copyTemplate, которая позволяет задавать базовый шаблон copySpeс
+```groovy
+dwh {
+  // Пример, иллюстрирующий значения по-умолчанию
+  copyTemplate {
+    from '.'
+    include 'gradle/'
+    include "gradlew"
+    include "gradlew.bat"
+    include "gradle.template.properties"
+    include "settings.gradle"
+  }
+}
+```
+- copyTemplate по-умолчанию собирает не только исходный код, но и gradle-wrapper
+- В определении исходного кода предметных областей теперь должны использовать только include и exclude. Такой подход позволяет сохранять структуру файлов при сборке
+  релиза предметной области
+```groovy
+sources {
+  include 'src/main/gp/dir1/'
+  exclude 'src/main/gp/dir1/**/file1*'
+  include 'src/main/gp/p1.yaml'
+}
+```
+
+### [0.7.0] - 2021-06-04
+### Добавлено
+- Переделан DSL, теперь секция чейнжлог заполняется для предметных областей. Имя контейнера определят лейблы, с которыми будет работать данная предметная
+  область
 
 ## [0.6.0] - 2021-03-04
 ### Добавлено

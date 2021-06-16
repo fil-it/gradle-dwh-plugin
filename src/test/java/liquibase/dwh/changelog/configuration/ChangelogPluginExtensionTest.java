@@ -46,47 +46,47 @@ class ChangelogPluginExtensionTest {
                 .withTestKitDir(testKit);
     }
 
-    @Test
-    public void checkTestSystem() throws IOException {
-        final String testConfig =
-                "changelog {\n" +
-                        "    dwhTest {\n" +
-                        "        system false\n" +
-                        "        type 'gp'\n" +
-                        "    }\n" +
-                        "    gpadminTest {\n" +
-                        "        system true\n" +
-                        "        type 'gp'\n" +
-                        "        location \"src/main/gp/databases/gpadmin\"\n" +
-                        "    }\n" +
-                        "}";
-
-        BuildResult result = setup(testConfig).withArguments("printConfig").build();
-        System.out.println(result.getOutput());
-        final List<String> database = new BufferedReader(new StringReader(result.getOutput())).lines().filter(s -> s.contains("Database")).collect(Collectors.toList());
-        Assert.assertTrue("gpadmin is not system", database.stream().filter(s -> s.contains("system=true")).findFirst().orElseThrow(() -> new RuntimeException("system not set true")).contains("name=gpadminTest"));
-        Assert.assertTrue("dwh is system", database.stream().filter(s -> s.contains("system=false")).findFirst().orElseThrow(() -> new RuntimeException("system not set false")).contains("name=dwhTest"));
-
-    }
-
-    @Test
-    public void checkTestBasic() throws IOException {
-        final String testConfig =
-                "changelog {\n" +
-                        "    oneTest {\n" +
-                        "        type 'gp'\n" +
-                        "    }\n" +
-                        "    twoTest {\n" +
-                        "        type 'gp'\n" +
-                        "    }\n" +
-                        "}";
-
-        BuildResult result = setup(testConfig).withArguments("printConfig").build();
-        System.out.println(result.getOutput());
-        final List<String> database = new BufferedReader(new StringReader(result.getOutput())).lines().filter(s -> s.contains("Database")).collect(Collectors.toList());
-        Assert.assertTrue("system not set false", database.stream().filter(s -> s.contains("name=oneTest")).findFirst().orElseThrow(() -> new RuntimeException("oneTest not found")).contains("system=false"));
-        Assert.assertTrue("system not set false", database.stream().filter(s -> s.contains("name=twoTest")).findFirst().orElseThrow(() -> new RuntimeException("twoTest not found")).contains("system=false"));
-
-    }
+//    @Test
+//    public void checkTestSystem() throws IOException {
+//        final String testConfig =
+//                "changelog {\n" +
+//                        "    dwhTest {\n" +
+//                        "        system false\n" +
+//                        "        type 'gp'\n" +
+//                        "    }\n" +
+//                        "    gpadminTest {\n" +
+//                        "        system true\n" +
+//                        "        type 'gp'\n" +
+//                        "        location \"src/main/gp/databases/gpadmin\"\n" +
+//                        "    }\n" +
+//                        "}";
+//
+//        BuildResult result = setup(testConfig).withArguments("printConfig").build();
+//        System.out.println(result.getOutput());
+//        final List<String> database = new BufferedReader(new StringReader(result.getOutput())).lines().filter(s -> s.contains("Database")).collect(Collectors.toList());
+//        Assert.assertTrue("gpadmin is not system", database.stream().filter(s -> s.contains("system=true")).findFirst().orElseThrow(() -> new RuntimeException("system not set true")).contains("name=gpadminTest"));
+//        Assert.assertTrue("dwh is system", database.stream().filter(s -> s.contains("system=false")).findFirst().orElseThrow(() -> new RuntimeException("system not set false")).contains("name=dwhTest"));
+//
+//    }
+//
+//    @Test
+//    public void checkTestBasic() throws IOException {
+//        final String testConfig =
+//                "changelog {\n" +
+//                        "    oneTest {\n" +
+//                        "        type 'gp'\n" +
+//                        "    }\n" +
+//                        "    twoTest {\n" +
+//                        "        type 'gp'\n" +
+//                        "    }\n" +
+//                        "}";
+//
+//        BuildResult result = setup(testConfig).withArguments("printConfig").build();
+//        System.out.println(result.getOutput());
+//        final List<String> database = new BufferedReader(new StringReader(result.getOutput())).lines().filter(s -> s.contains("Database")).collect(Collectors.toList());
+//        Assert.assertTrue("system not set false", database.stream().filter(s -> s.contains("name=oneTest")).findFirst().orElseThrow(() -> new RuntimeException("oneTest not found")).contains("system=false"));
+//        Assert.assertTrue("system not set false", database.stream().filter(s -> s.contains("name=twoTest")).findFirst().orElseThrow(() -> new RuntimeException("twoTest not found")).contains("system=false"));
+//
+//    }
 
 }

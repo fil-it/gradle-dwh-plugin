@@ -1,0 +1,130 @@
+//Добавляем неглядя все зависимости скрипту сборки (включая проектные)
+//ВНИМАНИЕ! Это говнокод, нарушена инкапсуляция зависимостей скрипта и проекта
+buildscript {
+    if (OFFLINE_MODE) {
+        logger.warn("Attention! Offline mode")
+        dependencies {
+            classpath fileTree(OFFLINE_REPO)
+        }
+    }
+}
+plugins {
+    id 'groovy'
+    id 'liquibase.dwh.changelog' version '0.8.0-SNAPSHOT'
+}
+//Для работы офлай
+if (OFFLINE_MODE) {
+    repositories {
+        flatDir {
+            dirs OFFLINE_REPO
+        }
+    }
+} else {
+    logger.warn("Attention! Offline mode")
+    repositories {
+        maven {
+            url = REPO_RESOLVE_RELEASE
+            credentials {
+                username PHOENIX_USER
+                password PHOENIX_PASSWORD
+            }
+        }
+        maven {
+            url = REPO_RESOLVE_SNAPSHOT
+            credentials {
+                username PHOENIX_USER
+                password PHOENIX_PASSWORD
+            }
+        }
+    }
+}
+
+if (OFFLINE_MODE) {
+    //ВНИМАНИЕ! Это говнокод, нарушена инкапсуляция зависимостей скрипта и проекта для разных конфигураций
+    dependencies {
+        liquibaseRuntime fileTree(OFFLINE_REPO)
+    }
+} else {
+    dependencies {
+        liquibaseRuntime 'org.liquibase:liquibase-core:3.8.9'
+        liquibaseRuntime 'org.liquibase:liquibase-groovy-dsl:2.1.1'
+        liquibaseRuntime 'org.postgresql:postgresql:42.2.12'
+        liquibaseRuntime 'ru.yandex.clickhouse:clickhouse-jdbc:0.2.6'
+        liquibaseRuntime 'org.yaml:snakeyaml:1.15'
+    }
+}
+
+//Задачка позволяет скопировать все зависимости в директорию чтобы использовать их в режиме оффлайн
+//Не забудьте, что сам gradle не является зависимостью и вам придется отказаться от использования врапера
+//и установить дистрибутив в ОС.
+task prepareToOffline() {
+    doLast {
+        logger.quiet("Collect dependencies for plugins and project and copy into $OFFLINE_REPO")
+        //Собираем зависимости самого билдскрипта и для проекта
+        def deps = (buildscript.configurations + project.configurations).stream()
+                .filter { it.canBeResolved } //внутренние конфигурации не имеют зависимостей и не могут быть разрешены
+                .map { it.resolvedConfiguration } //вычисляем рантайм-зависимости
+                .flatMap { it.files.stream() } //извлекаем из конфигураций файлы артефатов
+                .each { dep ->
+                    //Копируем куда хотели
+                    copy {
+                        from dep
+                        into OFFLINE_REPO
+                    }
+                }
+        logger.quiet("To use local repository add property OFFLINE_MODE to project")
+    }
+}
+
+dwh {
+//    Пример, иллюстрирующий значения по-умолчанию
+    copyTemplate {
+        from '.'
+        include 'gradle/'
+        include "gradlew"
+        include "gradlew.bat"
+        include "gradle.template.properties"
+        include "settings.gradle"
+    }
+}
+
+changelog {
+    p1 {
+        sources {
+            include 'src/main/gp/dir1/'
+            exclude 'src/main/gp/dir1/**/file1*'
+            include 'src/main/gp/p1.yaml'
+        }
+        activity {
+            if (project.hasProperty('contexts')) {
+                contexts contexts
+            }
+            changeLogFile 'src/main/gp/p1.yaml'
+            url "$GP_JDBC_BASE_URL/gpadmin"
+            username(GP_ADMIN_USERNAME)
+            password GP_ADMIN_PASSWORD
+            logLevel 'warning'
+        }
+    }
+
+//    p2 {
+//        sources {
+//            from ('src/main/gp/dir1')
+//        }
+//        activivty {
+//            if (project.hasProperty('contexts')) {
+//                contexts contexts
+//            }
+//            changeLogFile 'src/main/gp/p2.yaml'
+//            url "$GP_JDBC_BASE_URL/gpadmin"
+//            username GP_ADMIN_USERNAME
+//            password GP_ADMIN_PASSWORD
+//            logLevel 'debug'
+//        }
+//    }
+}
+liquibase {
+    runList = project.ext.runList
+}
+
+task debug {}

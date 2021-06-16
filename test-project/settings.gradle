@@ -1,0 +1,39 @@
+pluginManagement {
+//          Подключаем локальную директорию в офлайн-режиме
+     if (OFFLINE_MODE) {
+          repositories {
+               flatDir {
+                    dirs OFFLINE_REPO
+               }
+          }
+//          Идентификатор плагина не доступен без мавена, вручную переопределяем его
+          resolutionStrategy {
+               eachPlugin {
+                    if (requested.id.id == 'liquibase.dwh.changelog') {
+                         useModule("local:gradle-dwh-plugin:${requested.version}")
+                    }
+               }
+          }
+     } else {
+          repositories {
+               maven {
+                    url = REPO_RESOLVE_RELEASE
+                    credentials {
+                         username PHOENIX_USER
+                         password PHOENIX_PASSWORD
+                    }
+               }
+               maven {
+                    url = REPO_RESOLVE_SNAPSHOT
+                    credentials {
+                         username PHOENIX_USER
+                         password PHOENIX_PASSWORD
+                    }
+               }
+          }
+     }
+}
+
+rootProject.name = "dwh-plugin-test-project"
+
+//includeBuild '../'
