@@ -1,0 +1,25 @@
+version: "3"
+services:
+  gp-singlenode:
+    # забираем latest образ из gitlab registry
+    image:  gitlab.akb-it.ru:4567/gismubi/infrastructure/adb-master:0.6.1
+    privileged: true
+    # доступ RO к файловой системе cgroup внутри контейнера для systemd.
+    volumes:
+      - "/sys/fs/cgroup:/sys/fs/cgroup:ro"
+
+    # монтируем tmpfs внутри контейнера
+    tmpfs:
+      - "/run"
+      - "/tmp"
+
+    # определение портов: если на локальной машине уже используются данные порты, то прописать замену XXXXX:22 XXXXX:5432
+    ports:
+      - "22:22"
+      - "5432:5432"
+# забираем образ (Данный image из DockrerHub)
+#  ch-server:
+#    image: yandex/clickhouse-server:20.4.4.18
+# определение портов:
+#    ports:
+#      - "8123:8123"

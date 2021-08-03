@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: p2_1
+      author: tim
+      labels: p2
+      changes:
+      - createTable:
+          tableName: p2_1
+          columns:
+          - column:
+              name: id
+              type: int
+              autoIncrement: true
+              constraints:
+                primaryKey: true
+                nullable: false
+  - changeSet:
+      id: p2_2
+      author: tim
+      labels: p2
+      changes:
+        - createTable:
+            tableName: p2_2
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
