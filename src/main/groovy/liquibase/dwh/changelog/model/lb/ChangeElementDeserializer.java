@@ -12,17 +12,17 @@ import java.io.IOException;
 /**
  * Кастомизация десериализации для возможности использовать интерфейсный тип вместо конкретного в классах модели.
  */
-public class ChangelogElementDeserializer extends JsonDeserializer<ChangelogElement> {
+public class ChangeElementDeserializer extends JsonDeserializer<Change> {
     @Override
-    public ChangelogElement deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+    public Change deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
         ObjectMapper mapper = (ObjectMapper) jp.getCodec();
         ObjectNode root = mapper.readTree(jp);
-        if (root.has("logicalFilePath")) {
-            return mapper.readValue(root.toString(), ChangelogElementLogicalPath.class);
-        } else if (root.has("include")) {
-            return mapper.readValue(root.toString(), ChangelogElementInclude.class);
-        } else if (root.has("changeSet")) {
-            return mapper.readValue(root.toString(), ChangelogElementChangeSet.class);
+        if (root.has("createTable")) {
+            return mapper.readValue(root.toString(), ChangeElementCreateTable.class);
+        } else if (root.has("createView")) {
+            return mapper.readValue(root.toString(), ChangeElementCreateView.class);
+        } else if (root.has("createIndex")) {
+            return mapper.readValue(root.toString(), ChangeElementCreateIndex.class);
         } else {
             throw new GradleException("Can't deserialize " + root);
         }

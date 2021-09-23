@@ -62,6 +62,9 @@ public class GenerateChangelogTask extends DefaultTask {
         setGroup("DWH");
     }
 
+    /**
+     * Подготовка
+     */
     private void init() {
         changelogPluginExtension = getProject().getExtensions().findByType(ChangelogPluginExtension.class);
     }
@@ -79,18 +82,34 @@ public class GenerateChangelogTask extends DefaultTask {
         processSubjectAreas();
     }
 
+    /**
+     * Обработка каждой предметной области
+     */
     private void processSubjectAreas() {
         changelogPluginExtension.getSubjectAreaConfigurations().forEach(this::processSubjectArea);
     }
 
+    /**
+     * TODO
+     * @return CopySpecInternal
+     */
     private CopySpecInternal createRootSpec() {
         return this.getProject().getObjects().newInstance(DefaultCopySpec.class, new Object[0]);
     }
 
+    /**
+     * Получить источники из конфига
+     * @param subjectArea конфигурация предметной области
+     * @return список файлов найденных по конфигу
+     */
     private FileCollection getSources(SubjectAreaConfiguration subjectArea) {
         return ((CopySpecInternal) createRootSpec().with(subjectArea.getSourcesCopySpec())).buildRootResolver().getAllSource();
     }
 
+    /**
+     * Обработка предметной области
+     * @param subjectArea конфигурация предметной области
+     */
     private void processSubjectArea(SubjectAreaConfiguration subjectArea) {
         getLogger().quiet("Processing activity '{}' with master-changelog '{}'", subjectArea.getName(), subjectArea.getChangelogFile());
         FileCollection sources = getSources(subjectArea);
@@ -110,6 +129,11 @@ public class GenerateChangelogTask extends DefaultTask {
         addIncludeToMaster(normalizedPath, masterFile);
     }
 
+    /**
+     * Добавить блок include в master.yaml
+     * @param normalizedPath путь для указания в блоке
+     * @param masterFile путь до master.yaml
+     */
     private void addIncludeToMaster(Path normalizedPath, Path masterFile) {
         ChangelogElementInclude include = ChangelogElementInclude.builder()
                                                                  .include(ChangelogInclude.builder()
@@ -126,10 +150,23 @@ public class GenerateChangelogTask extends DefaultTask {
 
     }
 
+    /**
+     * Перезапись master.yaml
+     * @param masterFile путь до master.yaml
+     * @param master новый файл
+     * @throws IOException
+     */
     private void overwriteMaster(Path masterFile, ChangelogFile master) throws IOException {
         getObjectMapper().writeValue(getProject().file(masterFile), master);
     }
 
+    /**
+     * Проверяет master.yaml и добавляет в него блок include если это необходимо
+     * @param masterFile путь до master.yaml
+     * @param include Блок include
+     * @return master.yaml
+     * @throws IOException
+     */
     private ChangelogFile validateMasterAndAppendIncludeIfNeeded(Path masterFile, ChangelogElementInclude include) throws IOException {
         String content = String.join("\n", Files.readAllLines(getProject().file(masterFile).toPath()));
         ChangelogFile master = getObjectMapper().readValue(content, ChangelogFile.class);
@@ -157,12 +194,23 @@ public class GenerateChangelogTask extends DefaultTask {
         }
     }
 
+    /**
+     * TODO
+     * @param taskMentionCount
+     * @param in
+     */
     private void countMentions(AtomicInteger taskMentionCount, ChangelogInclude in) {
         if (in.getFile().contains(taskName)) {
             taskMentionCount.incrementAndGet();
         }
     }
 
+    /**
+     * Провалидировать чейнджлог для таски
+     * @param tasksDir путь до чейнджлогов таски
+     * @param taskName имя таски
+     * @param name название activity
+     */
     private void validateTaskChangelog(Path tasksDir, String taskName, String name) {
         List<Path> changelog = listFilesUnchecked(tasksDir)
                 .filter(it -> it.getFileName().toString().contains(taskName))
@@ -178,6 +226,12 @@ public class GenerateChangelogTask extends DefaultTask {
         getLogger().quiet("There is no changelog file for taskName {} in activity '{}'. It's correct.", taskName, name);
     }
 
+    /**
+     * Найти папку с чейнджлогами таски
+     * @param master путь до master.yaml
+     * @param name название activity
+     * @return Путь дол папки с чейнджлогами таски
+     */
     private Path findTaskChangelogDir(Path master, String name) {
         Path tasksDir = master.getParent().resolve("tasks");
         if (getProject().file(tasksDir).isDirectory()) {
@@ -190,6 +244,11 @@ public class GenerateChangelogTask extends DefaultTask {
         }
     }
 
+    /**
+     * TODO
+     * @param it
+     * @return Stream of Path
+     */
     private Stream<Path> listFilesUnchecked(Path it) {
         try {
             return Files.list(getProject().file(it).toPath()).map(this::getProjectPath);
@@ -198,20 +257,31 @@ public class GenerateChangelogTask extends DefaultTask {
         }
     }
 
-    // All incoming paths are project relative, however gradle daemon working dir is not equal to projectDir
-    private Path getProjectPath(File f) {
-        return getProjectPath(f.toPath());
-    }
-
-    // All incoming paths are project relative, however gradle daemon working dir is not equal to projectDir
+    /**
+     * Получить путь до проекта
+     * All incoming paths are project relative, however gradle daemon working dir is not equal to projectDir
+     * @param f
+     * @return Путь до проекта
+     */
     private Path getProjectPath(Path f) {
         return getProject().getProjectDir().toPath().relativize(f).normalize();
     }
 
+    /**
+     * Путь в строку
+     * @param path путь
+     * @return строка
+     */
     private String pathToString(Path path) {
         return path.toString().replace('\\', '/');
     }
 
+    /**
+     * Сгенерировать чейнджлог для таски
+     * @param tasksDir папка для чейнджлога
+     * @param files sql файлы со скриптами
+     * @return путь к чейнджлогу
+     */
     private Path generateTaskChangelog(Path tasksDir, Set<File> files) {
         Path taskChangelogPath = generateFilePath(tasksDir);
         ChangelogElementLogicalPath pathElement = ChangelogElementLogicalPath.builder()
@@ -232,6 +302,10 @@ public class GenerateChangelogTask extends DefaultTask {
         }
     }
 
+    /**
+     * Получить маппер
+     * @return маппер
+     */
     private ObjectMapper getObjectMapper() {
         YAMLFactory jf = new YAMLFactory();
         jf.enable(YAMLGenerator.Feature.MINIMIZE_QUOTES);
@@ -241,6 +315,12 @@ public class GenerateChangelogTask extends DefaultTask {
         return mapper;
     }
 
+    /**
+     * TODO
+     * @param file
+     * @param files
+     * @return ChangelogElement
+     */
     private ChangelogElement createFileChangelogRepresentation(File file, Collection<File> files) {
         if (file.toString().contains("CD") || file.toString().contains("CM")) {
             return ChangelogElementInclude.builder()
@@ -255,6 +335,12 @@ public class GenerateChangelogTask extends DefaultTask {
                                         .build();
     }
 
+    /**
+     * Сгенерировать блок changeSet
+     * @param file
+     * @param files
+     * @return ChangeSet
+     */
     private ChangeSet createChangeSet(File file, Collection<File> files) {
         Path rollback = findRollbackPath(file, files);
         ChangeSet.ChangeSetBuilder builder = ChangeSet.builder();
@@ -277,6 +363,12 @@ public class GenerateChangelogTask extends DefaultTask {
         return builder.build();
     }
 
+    /**
+     * TODO
+     * @param file
+     * @param files
+     * @return Path
+     */
     @Nullable
     private Path findRollbackPath(File file, Collection<File> files) {
         Path rollbackCandidate = file.toPath().getParent().resolve(file.getName().replace("DD", "UD").replace("DM", "UM"));
@@ -288,6 +380,11 @@ public class GenerateChangelogTask extends DefaultTask {
         }
     }
 
+    /**
+     * Сгенерировать путь до чейнджлога таски
+     * @param taskDir путь с файлами таски
+     * @return путь до чейнджлога таски
+     */
     private Path generateFilePath(Path taskDir) {
         return taskDir.resolve(taskName + ".yaml");
     }

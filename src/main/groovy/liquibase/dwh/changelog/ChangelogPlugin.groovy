@@ -48,6 +48,7 @@ class ChangelogPlugin implements Plugin<Project> {
         project.getTasks().create("generateChangelogFiles", GenerateChangelogTask.class)
         project.getTasks().create("printConfig", PrintConfigTask.class)
         project.getTasks().create("importSql", ImportSqlTask.class)
+        project.getTasks().create("generateSeparateChangelog", GenerateSeparateChangelogTask.class)
     }
 
     /**
