@@ -70,6 +70,7 @@ public class GenerateSeparateChangelogTask extends DefaultTask {
 
     /**
      * Обработка предметной области
+     *
      * @param subjectArea предметная область
      */
     private void processSubjectArea(SubjectAreaConfiguration subjectArea) {
@@ -93,30 +94,31 @@ public class GenerateSeparateChangelogTask extends DefaultTask {
 
         Map<String, ChangelogFile.ChangelogFileBuilder> changesForSchemaMap = new HashMap<>();
 
-       changeSetList.forEach(changeSet -> {
-           String schemaName = changeSet.getChanges().get(0).getSchemaName();
+        changeSetList.forEach(changeSet -> {
+            String schemaName = changeSet.getChanges().get(0).getSchemaName();
 
-           ChangelogFile.ChangelogFileBuilder builder = changesForSchemaMap.get(schemaName);
-           if (builder == null) {
-               builder = ChangelogFile.builder();
-           }
-           ChangelogElement element = ChangelogElementChangeSet.builder()
-                   .changeSet(changeSet)
-                   .build();
+            ChangelogFile.ChangelogFileBuilder builder = changesForSchemaMap.get(schemaName);
+            if (builder == null) {
+                builder = ChangelogFile.builder();
+            }
+            ChangelogElement element = ChangelogElementChangeSet.builder()
+                    .changeSet(changeSet)
+                    .build();
 
-           builder.element(element);
-           changesForSchemaMap.put(schemaName, builder);
+            builder.element(element);
+            changesForSchemaMap.put(schemaName, builder);
 
         });
 
-       changesForSchemaMap.forEach((schemaName, changelogFileBuilder) -> saveSchemaChangelog(schemaName, masterFile, changelogFileBuilder));
+        changesForSchemaMap.forEach((schemaName, changelogFileBuilder) -> saveSchemaChangelog(schemaName, masterFile, changelogFileBuilder));
 
     }
 
     /**
      * Записать на диск чейнджлог схемы
-     * @param schemaName Название схемы
-     * @param masterChangelogPath Путь до мастер-чейнджлога (master.yaml)
+     *
+     * @param schemaName           Название схемы
+     * @param masterChangelogPath  Путь до мастер-чейнджлога (master.yaml)
      * @param changelogFileBuilder Билдер с данными для записи
      */
     private void saveSchemaChangelog(String schemaName, Path masterChangelogPath, ChangelogFile.ChangelogFileBuilder changelogFileBuilder) {
@@ -140,7 +142,8 @@ public class GenerateSeparateChangelogTask extends DefaultTask {
 
     /**
      * Вычисление пути чейнджлога для схемы
-     * @param master Путь до мастер чейнджлога (master.yaml)
+     *
+     * @param master     Путь до мастер чейнджлога (master.yaml)
      * @param schemaName Название схемы
      * @return Путь до чейнджлога конкретной схемы
      * @throws IOException
@@ -162,6 +165,7 @@ public class GenerateSeparateChangelogTask extends DefaultTask {
 
     /**
      * Прочитать мастер-чейнджлог (master.yaml) в структуру ChangelogFile
+     *
      * @param masterFilePath Путь до master.yaml
      * @return ChangelogFile
      * @throws IOException
@@ -173,6 +177,7 @@ public class GenerateSeparateChangelogTask extends DefaultTask {
 
     /**
      * Получить мапер
+     *
      * @return мапер
      */
     private ObjectMapper getObjectMapper() {

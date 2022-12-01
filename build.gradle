@@ -1,26 +1,26 @@
 plugins {
     id 'checkstyle'
-    id 'java-gradle-plugin'
     id 'groovy'
     id 'jacoco'
-    id "maven-publish"
     id "org.sonarqube"
     id 'org.liquibase.gradle' version '2.0.3'
+    id 'com.gradle.plugin-publish' version '1.1.0'
 }
 apply from: "gradle/sonar.gradle"
 group = 'ru.filit.bi'
 
-def baseVersion = '0.9.0'
+def baseVersion = '1.0.0'
 version = project.hasProperty('ver') ? project['ver'] : "$baseVersion-SNAPSHOT"
-
+version = baseVersion
 repositories {
-    maven {
-        url = REPO_RESOLVE_RELEASE
-        credentials {
-            username PHOENIX_USER
-            password PHOENIX_PASSWORD
-        }
-    }
+    mavenCentral()
+//    maven {
+//        url = REPO_RESOLVE_RELEASE
+//        credentials {
+//            username PHOENIX_USER
+//            password PHOENIX_PASSWORD
+//        }
+//    }
 }
 
 compileJava.options.encoding = 'UTF-8'
@@ -35,7 +35,7 @@ java {
 dependencies {
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.11.0'
     implementation 'org.liquibase:liquibase-gradle-plugin:2.0.3'
-    implementation 'ru.filit.bi:liquibase-clickhouse:0.1.0'
+    implementation 'com.mediarithmics:liquibase-clickhouse:0.7.2'
     implementation 'org.eclipse.jgit:org.eclipse.jgit:5.7.0.202003110725-r'
     implementation 'org.liquibase:liquibase-core:3.8.9'
     compileOnly 'org.projectlombok:lombok:1.18.20'
@@ -49,12 +49,20 @@ dependencies {
 
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
 }
-
+pluginBundle {
+    website = 'https://www.fil-it.ru'
+//    vcsUrl = 'https://github.com/GoogleContainerTools/jib/'
+    tags = ['liquibase', 'java', 'dwh']
+}
 gradlePlugin {
+
+//    website = 'www.fil-it.ru'
     plugins {
-        simplePlugin {
+        gradleDwhPlugin {
             id = 'liquibase.dwh.changelog'
             implementationClass = 'liquibase.dwh.changelog.ChangelogPlugin'
+            displayName = 'DWH Liquibase Plugin '
+            description = 'DWH as Code'
         }
     }
 }
@@ -93,10 +101,10 @@ jacocoTestReport {
     }
 }
 
-task testReport(type: TestReport) {
-    destinationDir = file("$buildDir/reports/tests")
-    reportOn test
-}
+//task testReport(type: TestReport) {
+//    destinationDir = file("$buildDir/reports/tests")
+//    reportOn test
+//}
 
 //task integrationTestReport(type: TestReport) {
 //    destinationDir = file("$buildDir/reports/tests")
@@ -108,51 +116,51 @@ checkstyle {
     checkstyleTest.enabled = false
 }
 
-publishing {
-    repositories {
-        maven {
-            name 'gismuRelease'
-            url = REPO_PUBLISH_RELEASE
-            credentials {
-                username PHOENIX_USER
-                password PHOENIX_PASSWORD
-            }
-        }
-        maven {
-            name 'gismuSnapshot'
-            url = REPO_PUBLISH_SNAPSHOT
-            credentials {
-                username PHOENIX_USER
-                password PHOENIX_PASSWORD
-            }
-        }
-    }
-}
+//publishing {
+//    repositories {
+//        maven {
+//            name 'gismuRelease'
+//            url = REPO_PUBLISH_RELEASE
+//            credentials {
+//                username PHOENIX_USER
+//                password PHOENIX_PASSWORD
+//            }
+//        }
+//        maven {
+//            name 'gismuSnapshot'
+//            url = REPO_PUBLISH_SNAPSHOT
+//            credentials {
+//                username PHOENIX_USER
+//                password PHOENIX_PASSWORD
+//            }
+//        }
+//    }
+//}
 
-task gismubiSnapshot {
-    dependsOn 'publishPluginMavenPublicationToGismuSnapshotRepository', 'publishSimplePluginPluginMarkerMavenPublicationToGismuSnapshotRepository'
-}
-
-task checkRelease {
-    doLast {
-        if (!project.hasProperty('ver')) {
-            throw new GradleException("Version must be explicitly provided with parameter -Pver. It's tag usually")
-        }
-        if (baseVersion != project.version) {
-            throw new GradleException("Version in build.gradle (baseVersion=$baseVersion) not consistent with provided version=$project.version. Synchronize them before release, please.")
-        }
-        def changelogSectionForCurrentVersion = file('CHANGELOG.md').find { line ->
-            if (line.startsWith("## [$baseVersion] - ")) {
-                return true
-            }
-        }
-        if (!changelogSectionForCurrentVersion) {
-            throw new GradleException("Changelog must contain information about released version ('## [$baseVersion] - ...'). Fill CHANGELOG.md and try release again")
-        }
-    }
-    finalizedBy 'doRelease'
-}
-
-task doRelease {
-    dependsOn checkRelease, 'publishPluginMavenPublicationToGismuReleaseRepository', 'publishSimplePluginPluginMarkerMavenPublicationToGismuReleaseRepository'
-}
+//task gismubiSnapshot {
+//    dependsOn 'publishPluginMavenPublicationToGismuSnapshotRepository', 'publishSimplePluginPluginMarkerMavenPublicationToGismuSnapshotRepository'
+//}
+//
+//task checkRelease {
+//    doLast {
+//        if (!project.hasProperty('ver')) {
+//            throw new GradleException("Version must be explicitly provided with parameter -Pver. It's tag usually")
+//        }
+//        if (baseVersion != project.version) {
+//            throw new GradleException("Version in build.gradle (baseVersion=$baseVersion) not consistent with provided version=$project.version. Synchronize them before release, please.")
+//        }
+//        def changelogSectionForCurrentVersion = file('CHANGELOG.md').find { line ->
+//            if (line.startsWith("## [$baseVersion] - ")) {
+//                return true
+//            }
+//        }
+//        if (!changelogSectionForCurrentVersion) {
+//            throw new GradleException("Changelog must contain information about released version ('## [$baseVersion] - ...'). Fill CHANGELOG.md and try release again")
+//        }
+//    }
+//    finalizedBy 'doRelease'
+//}
+//
+//task doRelease {
+//    dependsOn checkRelease, 'publishPluginMavenPublicationToGismuReleaseRepository', 'publishSimplePluginPluginMarkerMavenPublicationToGismuReleaseRepository'
+//}
